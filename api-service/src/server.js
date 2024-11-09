@@ -1,26 +1,51 @@
-// api-service/src/server.js
+// src/server.js
 const express = require('express');
-const mongoose = require('mongoose');
-const config = require('./config');
-const exchangeRatesRoutes = require('./routes/exchangeRates');
+const cors = require('cors');
+const path = require('path');
+const exchangeRoutes = require('./routes/exchangeRates');
+const { connectToDatabase } = require('./db');
+
+// Configuración básica
+require('dotenv').config({
+    path: path.resolve(__dirname, '../.env')
+});
+
+if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI is required');
+}
 
 const app = express();
 
-const clientOptions = { 
-  serverApi: { version: '1', strict: true, deprecationErrors: true } 
-};
+// Middlewares
+app.use(express.json());
+app.use(cors());
 
-mongoose.connect(config.MONGODB_URI, clientOptions)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('MongoDB connection error:', err));
+// Routes
+app.use('/api/exchange-rates', exchangeRoutes);
 
-app.use('/api/exchange-rates', exchangeRatesRoutes);
+// Health check para Docker
+app.get('/health', (_, res) => res.status(200).json({ status: 'ok' }));
 
-app.listen(config.PORT, () => {
-  console.log(`API Server running on port ${config.PORT}`);
-});
+async function startServer() {
+    try {
+        await connectToDatabase(process.env.MONGODB_URI);
+        console.log('Connected to database');
 
-process.on('SIGTERM', () => {
-  mongoose.connection.close();
-  process.exit(0);
-});
+        const port = process.env.PORT || 3000;
+        app.listen(port, () => {
+            console.log(`API Server running on port ${port}`);
+        });
+
+        // Graceful shutdown
+        process.on('SIGTERM', async () => {
+            await mongoose.connection.close();
+            process.exit(0);
+        });
+        
+    } catch (error) {
+        console.error('Startup error:', error);
+        process.exit(1);
+    }
+}
+
+startServer();
