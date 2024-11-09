@@ -1,0 +1,14 @@
+# docker-compose.yml
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      - PORT=${PORT}
+      - MONGODB_URI=${MONGODB_URI}
+      - SCRAPE_INTERVAL=${SCRAPE_INTERVAL}
+    env_file:
+      - ../.env
