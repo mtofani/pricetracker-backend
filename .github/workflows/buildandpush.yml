@@ -1,4 +1,4 @@
-name: Build and Deploy with Docker Compose
+name: Build and Deploy with Docker Comp v2
 
 on:
   push:
