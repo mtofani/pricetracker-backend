@@ -5,9 +5,8 @@ const path = require('path');
 const cron = require('node-cron');
 const { connectToDatabase } = require('./db');
 
-// Configuración básica
 require('dotenv').config({
-    path: path.resolve(__dirname, '../.env')
+    path: path.resolve(__dirname, '../../.env')
 });
 
 if (!process.env.MONGODB_URI) {
@@ -28,7 +27,7 @@ async function startServer() {
         await connectToDatabase(process.env.MONGODB_URI);
         console.log('Connected to database');
 
-        const port = process.env.PORT || 3000;
+        const port = process.env.SCRAPPER_PORT || 4000;
         app.listen(port, () => {
             console.log(`API Server running on port ${port}`);
         });

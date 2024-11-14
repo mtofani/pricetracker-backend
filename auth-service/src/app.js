@@ -2,7 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const exchangeRoutes = require('./routes/exchangeRates');
+const apiRoutes = require('./routes/authRoutes');
 const { connectToDatabase } = require('./db');
 
 // Configuración básica
@@ -21,7 +21,7 @@ app.use(express.json());
 app.use(cors());
 
 // Routes
-app.use('/api/exchange-rates', exchangeRoutes);
+app.use('/api/auth', apiRoutes);
 
 // Health check para Docker
 app.get('/health', (_, res) => res.status(200).json({ status: 'ok' }));
@@ -31,7 +31,8 @@ async function startServer() {
         await connectToDatabase(process.env.MONGODB_URI);
         console.log('Connected to database');
 
-        const port = process.env.API_PORT || 3000;
+        const port = process.env.AUTH_PORT || 3000;
+        
         app.listen(port, () => {
             console.log(`API Server running on port ${port}`);
         });

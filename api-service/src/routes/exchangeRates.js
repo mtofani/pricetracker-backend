@@ -13,6 +13,45 @@ router.get('/latest', async (req, res) => {
   }
 });
 
+
+
+router.get('/source/:source/:timeframe', async (req, res) => {
+  try {
+    const { source, timeframe } = req.params;
+    let query = { source };
+    let limit = 0;
+
+    const now = new Date(); // Define 'now' here
+
+    switch (timeframe) {
+      case '1d':
+        query.timestamp = { $gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) };
+        break;
+      case '7d':
+        query.timestamp = { $gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) };
+        break;
+      case '1m':
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+        query.timestamp = { $gte: lastMonth };
+        break;
+      case 'All':
+        // No additional query needed for 'all'
+        break;
+      default:
+        return res.status(400).json({ error: 'Invalid timeframe' });
+    }
+
+    const rates = await ExchangeRate.find(query)
+                                    .sort({ timestamp: 1 })
+                                    .limit(limit);
+
+    res.json(rates);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error retrieving data' });
+  }
+});
+
  router.get('/source/:source/all', async (req, res) => {
   try {
     const { source } = req.params;

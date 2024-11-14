@@ -1,16 +1,16 @@
-# Usa la imagen de node
-FROM node:20-alpine
-
+FROM mcr.microsoft.com/playwright:v1.47.2-focal
 
 WORKDIR /app
 
+# Copiar archivos de dependencias
 COPY ../package*.json ./
 
+# Instalar dependencias
 RUN npm install
 
-COPY ../ ./
+# Copiar el resto del código
+COPY . .
 
-EXPOSE 3000
-
+ENV NODE_ENV=production
 
 CMD ["npm", "start"]
