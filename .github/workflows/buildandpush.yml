@@ -65,6 +65,7 @@ jobs:
           AUTH_PORT: ${{ vars.AUTH_PORT }}
           SCRAPPER_PORT: 3003
         run: |
+          npm ci
           npm test
 
       # Loguearse en Docker Hub
