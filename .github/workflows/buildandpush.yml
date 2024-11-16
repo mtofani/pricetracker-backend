@@ -14,7 +14,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [api-service, auth-service, scrapper-service] # Ajusta con los nombres de tus servicios
+        service: [api-service]  # Ajusta con los nombres de tus servicios
 
     steps:
       # 1. Checkout del código
@@ -36,6 +36,9 @@ jobs:
           load: true
 
       # 4. Ejecutar el contenedor para pruebas
+
+      - name: Verify Docker image
+        run: docker images
       - name: Run container for ${{ matrix.service }}
         run: |
           docker run -d --rm --name test-container-${{ matrix.service }} \
