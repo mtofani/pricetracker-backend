@@ -1,20 +1,10 @@
-name: Build and Test with Docker Compose v2
-
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
-
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        service: [api-service, auth-service, scrapper-service]  # Agrega tus servicios aquí
+        service: [api-service, auth-service, scrapper-service]
 
     steps:
       - name: Checkout code
@@ -23,28 +13,25 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
-      - name: Debug secrets
-        run: echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} DOCKER_TOKEN=${{ secrets.DOCKER_TOKEN }}"
-
       - name: Build Docker image for ${{ matrix.service }}
         uses: docker/build-push-action@v2
         with:
           context: ./${{ matrix.service }}
           file: ./${{ matrix.service }}/docker/Dockerfile
-          push: false  # No subimos la imagen a Docker Hub
-          tags: ${{ matrix.service }}:test  # Etiqueta temporal para pruebas
+          push: false  # Construye la imagen localmente
+          tags: ${{ matrix.service }}:test
 
       - name: Run container for ${{ matrix.service }}
         run: |
-          docker run -d --rm --name test-container-${{ matrix.service }} -P ${{ matrix.service }}:test
-          sleep 5  # Dar tiempo al contenedor para iniciar correctamente
+          docker run -d --rm --name test-container-${{ matrix.service }} -p 3000:3000 ${{ matrix.service }}:test
+          sleep 5  # Tiempo para inicializar el contenedor
 
       - name: Run Jest tests for ${{ matrix.service }}
         working-directory: ./${{ matrix.service }}
         run: |
-          npm install  # Asegúrate de que las dependencias necesarias estén instaladas
-          npm run test  # Ejecuta las pruebas con Jest
+          npm install
+          npm test
 
       - name: Stop and remove container
-        if: always()  # Detén el contenedor aunque las pruebas fallen
+        if: always()
         run: docker stop test-container-${{ matrix.service }}
