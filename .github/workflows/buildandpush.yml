@@ -48,7 +48,7 @@ jobs:
 
       # 5. Verificar que el contenedor está en ejecución (opcional)
       - name: Check running container
-        run: docker ps | grep test-container-${{ matrix.service }}
+        run: docker ps 
 
       # 6. Ejecutar pruebas con Jest (o cualquier framework de pruebas)
       - name: Run tests against container
