@@ -1,4 +1,4 @@
-name: Build and Deploy with Docker Comp v2
+name: Build and Deploy with Docker Compose v2
 
 on:
   push:
@@ -9,12 +9,43 @@ on:
       - master
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        service: [api-service, auth-service, scrapper-service]  # Asumiendo que tienes estos servicios
+        service: [api-service, auth-service, scrapper-service] # Asumiendo que tienes estos servicios
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies for ${{ matrix.service }}
+        working-directory: ./${{ matrix.service }}
+        run: npm install
+
+      - name: Start server for ${{ matrix.service }}
+        working-directory: ./${{ matrix.service }}
+        run: |
+          npm start &
+          sleep 5  # Dar tiempo al servidor para iniciar
+
+      - name: Run tests for ${{ matrix.service }}
+        working-directory: ./${{ matrix.service }}
+        run: npm test
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test  # Solo se ejecutará si el job "test" tiene éxito
+
+    strategy:
+      matrix:
+        service: [api-service, auth-service, scrapper-service] # Asumiendo que tienes estos servicios
 
     steps:
       - name: Checkout code
