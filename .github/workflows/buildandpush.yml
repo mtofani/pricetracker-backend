@@ -33,6 +33,7 @@ jobs:
           file: ./${{ matrix.service }}/docker/Dockerfile
           push: false  # No subas la imagen
           tags: ${{ matrix.service }}:test  # Marca como "test"
+          load: true
 
       # 4. Ejecutar el contenedor para pruebas
       - name: Run container for ${{ matrix.service }}
