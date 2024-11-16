@@ -1,4 +1,4 @@
-name: Build and Deploy with Docker Compose v2
+name: Build, Test, and Deploy with Docker Compose v2
 
 on:
   push:
@@ -9,43 +9,12 @@ on:
       - master
 
 jobs:
-  test:
+  build-and-test:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        service: [api-service, auth-service, scrapper-service] # Asumiendo que tienes estos servicios
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install dependencies for ${{ matrix.service }}
-        working-directory: ./${{ matrix.service }}
-        run: npm install
-
-      - name: Start server for ${{ matrix.service }}
-        working-directory: ./${{ matrix.service }}
-        run: |
-          npm start &
-          sleep 5  # Dar tiempo al servidor para iniciar
-
-      - name: Run tests for ${{ matrix.service }}
-        working-directory: ./${{ matrix.service }}
-        run: npm test
-
-  build:
-    runs-on: ubuntu-latest
-    needs: test  # Solo se ejecutará si el job "test" tiene éxito
-
-    strategy:
-      matrix:
-        service: [api-service, auth-service, scrapper-service] # Asumiendo que tienes estos servicios
+        service: [api-service, auth-service, scrapper-service] # Ajusta según tus servicios
 
     steps:
       - name: Checkout code
@@ -57,16 +26,51 @@ jobs:
       - name: Debug secrets
         run: echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} DOCKER_TOKEN=${{ secrets.DOCKER_TOKEN }}"
 
-      - name: Log in to Docker Hub using token
+      - name: Build Docker image for ${{ matrix.service }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/docker/Dockerfile
+          push: false  # No lo subas aún
+          tags: ${{ matrix.service }}:test  # Marca la imagen como "test"
+
+      - name: Run container for ${{ matrix.service }}
+        run: |
+          docker run -d --rm --name test-container-${{ matrix.service }} -p 3000:3000 ${{ matrix.service }}:test
+          sleep 5  # Dar tiempo al contenedor para levantarse
+
+      - name: Run tests against container
+        working-directory: ./${{ matrix.service }}
+        run: |
+          npm install  # Instala dependencias de test si no están incluidas en la imagen
+          npm test
+
+      - name: Stop and remove container
+        if: always()  # Asegúrate de detener el contenedor incluso si las pruebas fallan
+        run: docker stop test-container-${{ matrix.service }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-test  # Solo se ejecuta si las pruebas pasan
+
+    strategy:
+      matrix:
+        service: [api-service, auth-service, scrapper-service]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Build and push Docker image for ${{ matrix.service }}
+      - name: Push Docker image for ${{ matrix.service }}
         uses: docker/build-push-action@v2
         with:
           context: ./${{ matrix.service }}
           file: ./${{ matrix.service }}/docker/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:latest, ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${{ github.sha }}
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:latest, ${{ secrets.DOCKER_USERNAME }}/${{ matrix.s
