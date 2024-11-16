@@ -7,6 +7,9 @@ on:
     branches:
       - master
 
+env:
+  NODE_VERSION: '20'
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -16,7 +19,6 @@ jobs:
           - service: api-service
             port_var: API_PORT
             port: ${{ vars.API_PORT }}
-        
 
     steps:
       - name: Checkout code
@@ -25,22 +27,21 @@ jobs:
       # Crear archivo .env para las variables de entorno
       - name: Create env file
         run: |
-          # Usar las variables del repositorio
           echo "API_PORT=${{ vars.API_PORT }}" >> .env
           echo "AUTH_PORT=${{ vars.AUTH_PORT }}" >> .env
           echo "SCRAPPER_PORT=3003" >> .env
-          # Secrets
           echo "MONGODB_URI=${{ secrets.MONGODB_URI}}" >> .env
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
+      # Construir la imagen de prueba
       - name: Build Docker image for ${{ matrix.service }}
         uses: docker/build-push-action@v2
         with:
           context: ./${{ matrix.service }}
           file: ./${{ matrix.service }}/docker/Dockerfile
-          push: false
+          push: false  # Solo se construye, no se hace push
           tags: ${{ matrix.service }}:test
           load: true
           build-args: |
@@ -60,22 +61,39 @@ jobs:
       - name: Run tests against container
         working-directory: ./${{ matrix.service }}
         env:
-          # Usar las variables del repositorio
           API_PORT: ${{ vars.API_PORT }}
           AUTH_PORT: ${{ vars.AUTH_PORT }}
           SCRAPPER_PORT: 3003
         run: |
-          npm install
           npm test
 
-      - name: Stop and remove container
-        if: always()
-        run: docker stop test-container-${{ matrix.service }}
+      # Loguearse en Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io  # Usamos el registry de Docker Hub
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
+      # Si los tests pasan, hacer push de la imagen final
+      - name: Build and push production image
+        if: success()  # Solo si los tests pasan
+        uses: docker/build-push-action@v2
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/docker/Dockerfile
+          push: true  # Ahora sí se hace el push
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:latest  # Etiqueta con nombre de usuario en Docker Hub
+          build-args: |
+            NODE_ENV=production
+            ${{ matrix.port_var }}=${{ matrix.port }}
+
+      # Recolectar logs del contenedor si fallan las pruebas
       - name: Collect container logs
         if: failure()
         run: docker logs test-container-${{ matrix.service }} > container-${{ matrix.service }}.log
 
+      # Subir logs de contenedor en caso de fallos
       - name: Upload container logs
         if: failure()
         uses: actions/upload-artifact@v3
