@@ -24,7 +24,7 @@ app.use(cors());
 app.use('/api/auth', apiRoutes);
 
 // Health check para Docker
-app.get('/health', (_, res) => res.status(200).json({ status: 'ok' }));
+app.get('/api/health', (_, res) => res.status(200).json({ status: 'ok' }));
 
 async function startServer() {
     try {
@@ -50,3 +50,5 @@ async function startServer() {
 }
 
 startServer();
+
+

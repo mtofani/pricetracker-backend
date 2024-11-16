@@ -1,28 +1,28 @@
 
-services:
-  auth-service:
-    build:
-      context: ./auth-service
-      dockerfile: docker/Dockerfile
-    env_file:
-      - .env
-    ports:
-      - "${AUTH_PORT}:${AUTH_PORT}"  # Usando la variable de entorno AUTH_PORT
+  services:
+    auth-service:
+      build:
+        context: ./auth-service
+        dockerfile: docker/Dockerfile
+      env_file:
+        - .env
+      ports:
+        - "${AUTH_PORT}:${AUTH_PORT}"  # Usando la variable de entorno AUTH_PORT
 
-  api-service:
-    build:
-      context: ./api-service
-      dockerfile: docker/Dockerfile
-    env_file:
-      - .env
-    ports:
-      - "${API_PORT}:${API_PORT}"  # Usando la variable de entorno API_PORT
+    api-service:
+      build:
+        context: ./api-service
+        dockerfile: docker/Dockerfile
+      env_file:
+        - .env
+      ports:
+        - "${API_PORT}:${API_PORT}"  # Usando la variable de entorno API_PORT
 
-  scrapper-service:
-    build:
-      context: ./scrapper-service
-      dockerfile: docker/Dockerfile
-    env_file:
-      - .env
-    ports:
-      - "${SCRAPPER_PORT}:${SCRAPPER_PORT}"  # Usando la variable de entorno SCRAPPER_PORT
+    scrapper-service:
+      build:
+        context: ./scrapper-service
+        dockerfile: docker/Dockerfile
+      env_file:
+        - .env
+      ports:
+        - "${SCRAPPER_PORT}:${SCRAPPER_PORT}"  # Usando la variable de entorno SCRAPPER_PORT

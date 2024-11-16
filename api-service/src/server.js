@@ -24,7 +24,7 @@ app.use(cors());
 app.use('/api/exchange-rates', exchangeRoutes);
 
 // Health check para Docker
-app.get('/health', (_, res) => res.status(200).json({ status: 'ok' }));
+app.get('/api/health', (_, res) => res.status(200).json({ status: 'ok' }));
 
 async function startServer() {
     try {
