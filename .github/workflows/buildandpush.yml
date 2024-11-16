@@ -41,7 +41,7 @@ jobs:
         run: docker images
       - name: Run container for ${{ matrix.service }}
         run: |
-          docker run -d --rm --name test-container-${{ matrix.service }} \
+          docker run -d --name test-container-${{ matrix.service }} \
             -p 3000:3000 \
             ${{ matrix.service }}:test
           sleep 5  # Esperar que el contenedor levante correctamente
