@@ -1,5 +1,4 @@
 name: Build and Test with Docker Compose v2
-
 on:
   push:
     branches:
@@ -11,59 +10,72 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        service: [api-service, auth-service, scrapper-service]  # Los servicios que quieres testear
-        port: [3001, 3002, 3003]  # Los puertos correspondientes
+        include:
+          - service: api-service
+            port_var: API_PORT
+            port: ${{ vars.API_PORT }}
+        
 
     steps:
-      # 1. Checkout del código
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # 2. Configurar Docker Buildx
+      # Crear archivo .env para las variables de entorno
+      - name: Create env file
+        run: |
+          # Usar las variables del repositorio
+          echo "API_PORT=${{ vars.API_PORT }}" >> .env
+          echo "AUTH_PORT=${{ vars.AUTH_PORT }}" >> .env
+          echo "SCRAPPER_PORT=3003" >> .env
+          # Si tienes secrets, también puedes agregarlos aquí
+          # echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
-      # 3. Construir la imagen del servicio
       - name: Build Docker image for ${{ matrix.service }}
         uses: docker/build-push-action@v2
         with:
           context: ./${{ matrix.service }}
           file: ./${{ matrix.service }}/docker/Dockerfile
-          push: false  # No subas la imagen
-          tags: ${{ matrix.service }}:test  # Marca como "test"
+          push: false
+          tags: ${{ matrix.service }}:test
           load: true
+          build-args: |
+            ${{ matrix.port_var }}=${{ matrix.port }}
 
-      # 4. Ejecutar el contenedor para pruebas
       - name: Run container for ${{ matrix.service }}
         run: |
           docker run -d --name test-container-${{ matrix.service }} \
+            --env-file .env \
             -p ${{ matrix.port }}:${{ matrix.port }} \
             ${{ matrix.service }}:test
-          sleep 5  # Esperar que el contenedor levante correctamente
+          sleep 5
 
-      # 5. Verificar que el contenedor está en ejecución
       - name: Check running container
-        run: docker ps 
+        run: docker ps
 
-      # 6. Ejecutar pruebas con Jest
       - name: Run tests against container
         working-directory: ./${{ matrix.service }}
+        env:
+          # Usar las variables del repositorio
+          API_PORT: ${{ vars.API_PORT }}
+          AUTH_PORT: ${{ vars.AUTH_PORT }}
+          SCRAPPER_PORT: 3003
         run: |
-          npm install  # Instala dependencias necesarias para las pruebas
-          npm test     # Ejecuta las pruebas unitarias o de integración
+          npm install
+          npm test
 
-      # 7. Detener el contenedor (siempre, incluso si las pruebas fallan)
       - name: Stop and remove container
-        if: always()  # Ejecutar este paso incluso si las pruebas fallan
+        if: always()
         run: docker stop test-container-${{ matrix.service }}
 
-      # 8. Subir logs del contenedor como artefactos (para depuración)
       - name: Collect container logs
-        if: failure()  # Solo si las pruebas fallan
+        if: failure()
         run: docker logs test-container-${{ matrix.service }} > container-${{ matrix.service }}.log
+
       - name: Upload container logs
         if: failure()
         uses: actions/upload-artifact@v3
