@@ -1,4 +1,4 @@
-name: Build, Test, and Deploy with Docker Compose v2
+name: Build and Test with Docker Compose v2
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [api-service, auth-service, scrapper-service]
+        service: [api-service, auth-service, scrapper-service]  # Agrega tus servicios aquí
 
     steps:
       - name: Checkout code
@@ -23,34 +23,28 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '16'
+      - name: Debug secrets
+        run: echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} DOCKER_TOKEN=${{ secrets.DOCKER_TOKEN }}"
 
       - name: Build Docker image for ${{ matrix.service }}
         uses: docker/build-push-action@v2
         with:
           context: ./${{ matrix.service }}
           file: ./${{ matrix.service }}/docker/Dockerfile
-          push: false
-          tags: ${{ matrix.service }}:test
+          push: false  # No subimos la imagen a Docker Hub
+          tags: ${{ matrix.service }}:test  # Etiqueta temporal para pruebas
 
       - name: Run container for ${{ matrix.service }}
         run: |
           docker run -d --rm --name test-container-${{ matrix.service }} -P ${{ matrix.service }}:test
-          sleep 5
+          sleep 5  # Dar tiempo al contenedor para iniciar correctamente
 
-      - name: Run tests against container
+      - name: Run Jest tests for ${{ matrix.service }}
         working-directory: ./${{ matrix.service }}
         run: |
-          npm install
-          npm test
-
-      - name: Capture container logs on failure
-        if: failure()
-        run: docker logs test-container-${{ matrix.service }}
+          npm install  # Asegúrate de que las dependencias necesarias estén instaladas
+          npm run test  # Ejecuta las pruebas con Jest
 
       - name: Stop and remove container
-        if: always()
+        if: always()  # Detén el contenedor aunque las pruebas fallen
         run: docker stop test-container-${{ matrix.service }}
