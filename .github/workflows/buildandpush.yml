@@ -14,14 +14,15 @@ jobs:
 
     strategy:
       matrix:
-        service: [api-service]  # Ajusta con los nombres de tus servicios
+        service: [api-service, auth-service, scrapper-service]  # Los servicios que quieres testear
+        port: [3001, 3002, 3003]  # Los puertos correspondientes
 
     steps:
       # 1. Checkout del código
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # 2. Configurar Docker Buildx (para compatibilidad con multiarquitectura)
+      # 2. Configurar Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
@@ -36,21 +37,18 @@ jobs:
           load: true
 
       # 4. Ejecutar el contenedor para pruebas
-
-      - name: Verify Docker image
-        run: docker images
       - name: Run container for ${{ matrix.service }}
         run: |
           docker run -d --name test-container-${{ matrix.service }} \
-            -p 3000:3000 \
+            -p ${{ matrix.port }}:${{ matrix.port }} \
             ${{ matrix.service }}:test
           sleep 5  # Esperar que el contenedor levante correctamente
 
-      # 5. Verificar que el contenedor está en ejecución (opcional)
+      # 5. Verificar que el contenedor está en ejecución
       - name: Check running container
         run: docker ps 
 
-      # 6. Ejecutar pruebas con Jest (o cualquier framework de pruebas)
+      # 6. Ejecutar pruebas con Jest
       - name: Run tests against container
         working-directory: ./${{ matrix.service }}
         run: |
