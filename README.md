@@ -55,11 +55,5 @@ docker-compose up
 Si deseas extender el scraper a más sitios web, sigue estos pasos:
 
 1. **Modelos de Scraping**: Usa los modelos y clases existentes en el servicio `/services/scraper.js`.
-2. **Integrar Playwright**: Para realizar scraping dinámico y manejar sitios más complejos, integra Playwright:
-    - Instala Playwright:
-        ```bash
-        npm install playwright
-        ```
-    - Extiende el scraper para usar Playwright en lugar de métodos más simples de scraping.
     - Modifica `/services/scraper.js` para incluir la lógica de Playwright y así interactuar con páginas dinámicas.
 
